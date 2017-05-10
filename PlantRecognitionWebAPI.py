@@ -6,6 +6,11 @@ if sys.getdefaultencoding() != default_encoding:
     reload(sys)
     sys.setdefaultencoding(default_encoding)
 
+import cv2
+import math
+import numpy as np
+from PIL import Image
+from PIL.ExifTags import TAGS
 import tensorflow as tf
 from flask import Flask, request
 app = Flask(__name__)
@@ -45,9 +50,12 @@ def change_avatar():
         #保存图片文件
         file.save(photofile)
 
+        GaussianBlur(photofile)
+
         #返回植物图片识别结果
         return plantRecognition(photofile), 200
 
+#植物识别，返回识别结果字符串
 def plantRecognition(plantFile):
 
     #打开植物图片进行识别
@@ -79,6 +87,60 @@ def plantRecognition(plantFile):
     print result
     return result
 
+#图片按中心点旋转
+def rotate_about_center(src, angle, scale=1.):
+    if angle == 0:
+        return src
+
+    w = src.shape[1]
+    h = src.shape[0]
+    rangle = np.deg2rad(angle)  # angle in radians
+    # now calculate new image width and height
+    nw = (abs(np.sin(rangle)*h) + abs(np.cos(rangle)*w))*scale
+    nh = (abs(np.cos(rangle)*h) + abs(np.sin(rangle)*w))*scale
+    # ask OpenCV for the rotation matrix
+    rot_mat = cv2.getRotationMatrix2D((nw*0.5, nh*0.5), angle, scale)
+    # calculate the move from the old center to the new center combined
+    # with the rotation
+    rot_move = np.dot(rot_mat, np.array([(nw-w)*0.5, (nh-h)*0.5,0]))
+    # the move only affects the translation, so update the translation
+    # part of the transform
+    rot_mat[0,2] += rot_move[0]
+    rot_mat[1,2] += rot_move[1]
+    return cv2.warpAffine(src, rot_mat, (int(math.ceil(nw)), int(math.ceil(nh))), flags=cv2.INTER_LANCZOS4)
+
+#图片高斯模糊处理
+def GaussianBlur(imagefile):
+
+    rotateangle = get_Rotate_Angle(imagefile)
+
+    img = cv2.imread(imagefile)
+    kernel_size = (5, 5)
+    sigma = 3
+    newimg = cv2.GaussianBlur(img, kernel_size, sigma)
+    res = rotate_about_center(newimg, rotateangle)
+
+    cv2.imwrite(imagefile, res);
+
+#获取图片旋转角度
+def get_Rotate_Angle(fname):
+    try:
+        img = Image.open(fname)
+        if hasattr(img, '_getexif'):
+            exifinfo = img._getexif()
+            if exifinfo != None:
+                for tag, value in exifinfo.items():
+                    decoded = TAGS.get(tag, tag)
+
+                    if decoded == 'Orientation':
+
+                        if value == 6:
+                            return 270
+                        else:
+                            return 0
+    except IOError:
+        print 'IOERROR ' + fname
+    return 0
 
 if __name__ == '__main__':
     app.run(host='192.168.1.101', port=5000)
