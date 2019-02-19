@@ -2,7 +2,7 @@
 接收POST上传的图片，使用TensorFlow进行识别并返回结果
 
 ## 说明
-1.参考TensorFlow官方文档([How to Retrain Inception's Final Layer for New Categories](https://www.tensorflow.org/versions/master/how_tos/image_retraining/index.html#training-steps))对识别图片进行训练，并将训练成果output_labels.txt和output_graph.pb拷贝到当前目录下。
+1.参考TensorFlow官方文档([How to Retrain Inception's Final Layer for New Categories](https://www.tensorflow.org/hub/tutorials/image_retraining))对识别图片进行训练，并将训练成果output_labels.txt和output_graph.pb拷贝到当前目录下。
 
 2.之前实验结果表明，TensorFlow提供的Retrain Demo不支持分类标签是中文名称，所以可以按照dictionarys.txt的文档样式配置翻译字典
 
